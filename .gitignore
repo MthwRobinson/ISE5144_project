@@ -1,0 +1,3 @@
+*.pyc
+/src/python/build/*
+/src/python/docs/*
