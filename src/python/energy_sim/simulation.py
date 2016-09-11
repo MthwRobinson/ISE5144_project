@@ -5,7 +5,9 @@ grid simulation. See README.txt for documentation.
 
 from __future__ import division
 import numpy as np
-
+import pandas as pd
+import matplotlib.pyplot as plt
+from train_model import train_demand_model
 
 class SimError(Exception):
 	"""
@@ -18,6 +20,106 @@ class SimError(Exception):
 	def __str__(self):
 		return repr(self.value)
 
+def initialize_sim(state):
+	df, model = train_demand_model()
+	df['month'] = [x.month for x in df.date]
+	state_df = df.groupby('state').get_group(state)
+	months = state_df.groupby('month')
+	seasons = state_df.groupby('season')
+	mean_dict = dict(months.mean()['total_energy'])
+	var_dict = dict(months.std()['total_energy'])
+	return state_df, mean_dict, var_dict
+
+def simulate_demand(mean_dict, var_dict, start_month = 4, 
+	n = 12,	level = 'state', interval = 'monthly', pop = None):
+	if level not in ['state','city']:
+		err_string = """
+			The level must be either state or city
+		"""
+		raise SimError(err_string)
+	if interval not in ['monthly', 'daily']:
+		err_string = """
+			The interval must be either monthly or daily
+		"""
+		raise SimError(err_string)
+	if interval == 'daily' and pop == None:
+		err_string = """
+			Population is required to simulate at the
+			city level
+		"""
+		raise SimError(err_string)
+	if (pop < 0 or pop > 1) and pop != None:
+		err_string = """
+			Population is a percentage and must be
+			expressed as a float in 0 <= x <= 1
+		"""
+		raise SimError(err_string)
+	months = []
+	demand = []
+	for i in range(start_month, n+start_month):
+		month = i%12
+		if month == 0:
+			month = 12
+		mu = mean_dict[month]
+		sigma = var_dict[month]
+		if interval == 'monthly':
+			month_demand = np.random.normal(mu,sigma)
+			demand.append(month_demand)
+			months.append(month)
+		elif interval == 'daily':
+			month_demand  = np.random.normal(mu,sigma,30)
+			for dem in month_demand:
+				demand.appen(dem/30)
+				months.append(month)
+	if level == 'city':
+		demand = [pop*x for x in demand]
+	return demand
+
+def gen_sim_plots():
+	plt.clf()
+	plt.subplot(2,2,1)
+	df, mean_dict, var_dict = initialize_sim('NY')
+	demand = simulate_demand(mean_dict, var_dict, n = 109)
+	df['sim'] = demand
+	df['total_energy'].plot()
+	df['sim'].plot()
+	plt.xlabel('Date')
+	plt.ylabel('Energy Demand')
+	plt.legend()
+	plt.title('New York')
+
+	plt.subplot(2,2,2)
+	df, mean_dict, var_dict = initialize_sim('CA')
+	demand = simulate_demand(mean_dict, var_dict, n = 109)
+	df['sim'] = demand
+	df['total_energy'].plot()
+	df['sim'].plot()
+	plt.xlabel('Date')
+	plt.ylabel('Energy Demand')
+	plt.legend()
+	plt.title('California')
+
+	plt.subplot(2,2,3)
+	df, mean_dict, var_dict = initialize_sim('TX')
+	demand = simulate_demand(mean_dict, var_dict, n = 109)
+	df['sim'] = demand
+	df['total_energy'].plot()
+	df['sim'].plot()
+	plt.xlabel('Date')
+	plt.ylabel('Energy Demand')
+	plt.legend()
+	plt.title('Texas')
+
+	plt.subplot(2,2,4)
+	df, mean_dict, var_dict = initialize_sim('CO')
+	demand = simulate_demand(mean_dict, var_dict, n = 109)
+	df['sim'] = demand
+	df['total_energy'].plot()
+	df['sim'].plot()
+	plt.xlabel('Date')
+	plt.ylabel('Energy Demand')
+	plt.legend()
+	plt.title('Colorado')
 
 class Climate():
 	"""
@@ -140,11 +242,3 @@ class Climate():
 			return [self.state_dict[x] for x in events]
 		else:
 			return events
-
-
-
-
-
-
-
-

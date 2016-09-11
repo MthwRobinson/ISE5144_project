@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import seaborn
 import pickle
 
-
 def train_demand_model():
 	datadir = '/home/matt/ISE5144_project/data/cleaned/'
 	datafile = 'nrel_energy_consumption.csv'
