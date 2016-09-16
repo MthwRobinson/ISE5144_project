@@ -11,6 +11,8 @@ import statsmodels.formula.api as sm
 import matplotlib.pyplot as plt
 import seaborn
 import pickle
+from scipy.interpolate import UnivariateSpline
+from scipy.signal import cubic
 
 def train_demand_model():
 	datadir = '/home/matt/ISE5144_project/data/cleaned/'
@@ -63,6 +65,55 @@ def train_demand_model():
 	modeldir += '/python/energy_sim/models/'
 	pickle.dump(res, open(modeldir+'energy_demand.p', 'wb'))
 	return panel, res
+
+def train_weather_model():
+	datadir = '/home/matt/ISE5144_project/data/raw/'
+	datafile = 'noaa_phl_weather.csv'
+	df = pd.read_csv(datadir+datafile)
+	df_wind = df[['WSF2','DATE']]
+	df_wind['DATE'] = [pd.to_datetime(str(x)) for x in df_wind['DATE']]
+	df_wind.index = df_wind['DATE']
+	df_wind['day'] = [x.day for x in df_wind['DATE']]
+	df_wind['month'] = [x.month for x in df_wind['DATE']]
+	df_wind['year'] = [x.year for x in df_wind['DATE']]
+	df_avgwind = df_wind.groupby('month').mean()
+	df_stdwind = df_wind.groupby('month').std()
+	df_avgwind = df_avgwind[:360]
+	df_avgwind.index = range(len(df_avgwind))
+	x = np.array(range(15,360,30))
+	y = df_avgwind['WSF2']
+	spl = UnivariateSpline(x,y,k=5)
+	mean_list = spl(range(360))
+	std_list = df_stdwind['WSF2']
+	modeldir = '/home/matt/ISE5144_project/src'
+	modeldir += '/python/energy_sim/models/'
+	pickle.dump(mean_list, open(modeldir+'wind_mean.p', 'wb'))
+	pickle.dump(std_list, open(modeldir+'wind_std.p', 'wb'))
+	return mean_list, std_list
+
+def gen_weather_plots(df):
+	datadir = '/home/matt/ISE5144_project/data/raw/'
+	datafile = 'noaa_phl_weather.csv'
+	df = pd.read_csv(datadir+datafile)
+	df_wind = df[['WSF2','DATE']]
+	df_wind['DATE'] = [pd.to_datetime(str(x)) for x in df_wind['DATE']]
+	df_wind.index = df_wind['DATE']
+	df_wind['day'] = [x.day for x in df_wind['DATE']]
+	df_wind['month'] = [x.month for x in df_wind['DATE']]
+	df_wind['year'] = [x.year for x in df_wind['DATE']]
+	df_avgwind = df_wind.groupby('month').mean()
+	x = np.array(range(15,360,30))
+	y = df_avgwind['WSF2']
+	spl = UnivariateSpline(x,y,k=5)
+	signal = spl(range(360))
+	df_daily = df_wind.groupby(['month','day']).mean()
+	df_daily.index = range(len(df_daily))
+	df_daily['WSF2'].plot()
+	plt.plot(signal, color = 'red')
+	plt.title('Daily Expected Wind Level: PHL')
+	plt.ylabel('Day of Years')
+	plt.xlabel('Winds Speed')
+
 
 def gen_plots(panel, res):
 	plt.clf()

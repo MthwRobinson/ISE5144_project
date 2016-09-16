@@ -7,7 +7,11 @@ from __future__ import division
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from train_model import train_demand_model
+import pickle
+from train_model import (
+	train_demand_model,
+	train_weather_model
+)
 
 class SimError(Exception):
 	"""
@@ -20,7 +24,7 @@ class SimError(Exception):
 	def __str__(self):
 		return repr(self.value)
 
-def initialize_sim(state):
+def initialize_demand_sim(state):
 	df, model = train_demand_model()
 	df['month'] = [x.month for x in df.date]
 	state_df = df.groupby('state').get_group(state)
@@ -75,7 +79,45 @@ def simulate_demand(mean_dict, var_dict, start_month = 4,
 		demand = [pop*x for x in demand]
 	return demand
 
-def gen_sim_plots():
+def simulate_wind_level(n = 360):
+	modeldir = '/home/matt/ISE5144_project/src'
+	modeldir += '/python/energy_sim/models/'
+	mean_list = pickle.load(open(modeldir+'wind_mean.p', 'rb'))
+	std_list = pickle.load(open(modeldir+'wind_std.p', 'rb'))
+	std_list = list(std_list)
+	month = 0
+	winds = []
+	for i in range(n):
+		mu = mean_list[i%360]
+		sigma = std_list[month%12]
+		winds.append(max(0,np.random.normal(mu,sigma)))
+	return winds
+
+
+def gen_wind_sim_plots():
+	plt.clf()
+	plt.subplot(2,1,1)
+	datadir = '/home/matt/ISE5144_project/data/raw/'
+	datafile = 'noaa_phl_weather.csv'
+	df = pd.read_csv(datadir+datafile)
+	df_wind = df[['WSF2','DATE']]
+	df_wind['WSF2'][:360].plot()
+	plt.ylim([0,60])
+	plt.xlim([0,360])
+	plt.title('Observed Wind Values, PHL')
+	plt.xlabel('Day of Year')
+	plt.ylabel('Max Wind Speed')
+
+	plt.subplot(2,1,2)
+	winds = simulate_wind_level()
+	plt.plot(winds)
+	plt.ylim([0,60])
+	plt.xlim([0,360])
+	plt.title('Simulated Wind Values, PHL')
+	plt.xlabel('Day of Year')
+	plt.ylabel('Max Wind Speed')
+
+def gen_demand_sim_plots():
 	plt.clf()
 	plt.subplot(2,2,1)
 	df, mean_dict, var_dict = initialize_sim('NY')
