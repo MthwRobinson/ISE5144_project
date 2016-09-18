@@ -120,7 +120,7 @@ def gen_wind_sim_plots():
 def gen_demand_sim_plots():
 	plt.clf()
 	plt.subplot(2,2,1)
-	df, mean_dict, var_dict = initialize_sim('NY')
+	df, mean_dict, var_dict = initialize_demand_sim('NY')
 	demand = simulate_demand(mean_dict, var_dict, n = 109)
 	df['sim'] = demand
 	df['total_energy'].plot()
@@ -131,7 +131,7 @@ def gen_demand_sim_plots():
 	plt.title('New York')
 
 	plt.subplot(2,2,2)
-	df, mean_dict, var_dict = initialize_sim('CA')
+	df, mean_dict, var_dict = initialize_demand_sim('CA')
 	demand = simulate_demand(mean_dict, var_dict, n = 109)
 	df['sim'] = demand
 	df['total_energy'].plot()
@@ -142,7 +142,7 @@ def gen_demand_sim_plots():
 	plt.title('California')
 
 	plt.subplot(2,2,3)
-	df, mean_dict, var_dict = initialize_sim('TX')
+	df, mean_dict, var_dict = initialize_demand_sim('TX')
 	demand = simulate_demand(mean_dict, var_dict, n = 109)
 	df['sim'] = demand
 	df['total_energy'].plot()
@@ -153,7 +153,7 @@ def gen_demand_sim_plots():
 	plt.title('Texas')
 
 	plt.subplot(2,2,4)
-	df, mean_dict, var_dict = initialize_sim('CO')
+	df, mean_dict, var_dict = initialize_demand_sim('CO')
 	demand = simulate_demand(mean_dict, var_dict, n = 109)
 	df['sim'] = demand
 	df['total_energy'].plot()
