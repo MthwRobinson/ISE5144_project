@@ -66,11 +66,13 @@ def train_demand_model():
 	pickle.dump(res, open(modeldir+'energy_demand.p', 'wb'))
 	return panel, res
 
-def train_weather_model():
-	datadir = '/home/matt/ISE5144_project/data/raw/'
-	datafile = 'noaa_phl_weather.csv'
+def train_weather_model(city):
+	datadir = '/home/matt/ISE5144_project/data/cleaned/'
+	city_name = city.lower().replace(' ', '')
+	datafile = 'noaa_weather_' + city_name + '.csv'
 	df = pd.read_csv(datadir+datafile)
-	df_wind = df[['WSF2','DATE']]
+	df = df[df['AWND'] > 0]
+	df_wind = df[['AWND','DATE']]
 	df_wind['DATE'] = [pd.to_datetime(str(x)) for x in df_wind['DATE']]
 	df_wind.index = df_wind['DATE']
 	df_wind['day'] = [x.day for x in df_wind['DATE']]
@@ -81,21 +83,48 @@ def train_weather_model():
 	df_avgwind = df_avgwind[:360]
 	df_avgwind.index = range(len(df_avgwind))
 	x = np.array(range(15,360,30))
-	y = df_avgwind['WSF2']
+	y = df_avgwind['AWND']
 	spl = UnivariateSpline(x,y,k=5)
 	mean_list = spl(range(360))
-	std_list = df_stdwind['WSF2']
+	std_list = df_stdwind['AWND']
 	modeldir = '/home/matt/ISE5144_project/src'
 	modeldir += '/python/energy_sim/models/'
-	pickle.dump(mean_list, open(modeldir+'wind_mean.p', 'wb'))
-	pickle.dump(std_list, open(modeldir+'wind_std.p', 'wb'))
+	pickle.dump(mean_list, 
+		open(modeldir+'wind_mean_' + city_name + '.p', 'wb'))
+	pickle.dump(std_list, 
+		open(modeldir+'wind_std_' + city_name + '.p', 'wb'))
 	return mean_list, std_list
 
-def gen_weather_plots(df):
-	datadir = '/home/matt/ISE5144_project/data/raw/'
-	datafile = 'noaa_phl_weather.csv'
+def train_sun_model(city):
+	datadir = '/home/matt/ISE5144_project/data/cleaned/'
+	city_name = city.lower().replace(' ', '')
+	datafile = 'noaa_weather_' + city_name + '.csv'
 	df = pd.read_csv(datadir+datafile)
-	df_wind = df[['WSF2','DATE']]
+	df = df[df['PSUN'] > 0]
+	df_sun = df[['PSUN','DATE']]
+	df_sun['DATE'] = [pd.to_datetime(str(x)) for x in df_sun['DATE']]
+	df_sun.index = df_sun['DATE']
+	df_sun['day'] = [x.day for x in df_sun['DATE']]
+	df_sun['month'] = [x.month for x in df_sun['DATE']]
+	df_sun['year'] = [x.year for x in df_sun['DATE']]
+	df_maxsun = df_sun.groupby('month').max()
+	df_medsun = df_sun.groupby('month').median()
+	df_minsun = df_sun.groupby('month').min()
+	max_list = dict(df_maxsun['PSUN'])
+	med_list = dict(df_medsun['PSUN'])
+	min_list = dict(df_minsun['PSUN'])
+	modeldir = '/home/matt/ISE5144_project/src'
+	modeldir += '/python/energy_sim/models/'
+	pickle.dump(max_list, 
+		open(modeldir+'sun_max_' + city_name + '.p', 'wb'))
+	pickle.dump(med_list, 
+		open(modeldir+'sun_med_' + city_name + '.p', 'wb'))
+	pickle.dump(min_list, 
+		open(modeldir+'sun_min_' + city_name + '.p', 'wb'))
+	return max_list, med_list, min_list
+
+def gen_weather_plots(df):
+	df_wind = df[['AWND','DATE']]
 	df_wind['DATE'] = [pd.to_datetime(str(x)) for x in df_wind['DATE']]
 	df_wind.index = df_wind['DATE']
 	df_wind['day'] = [x.day for x in df_wind['DATE']]
@@ -103,14 +132,15 @@ def gen_weather_plots(df):
 	df_wind['year'] = [x.year for x in df_wind['DATE']]
 	df_avgwind = df_wind.groupby('month').mean()
 	x = np.array(range(15,360,30))
-	y = df_avgwind['WSF2']
+	y = df_avgwind['AWND']
 	spl = UnivariateSpline(x,y,k=5)
 	signal = spl(range(360))
 	df_daily = df_wind.groupby(['month','day']).mean()
 	df_daily.index = range(len(df_daily))
-	df_daily['WSF2'].plot()
+	df_daily['AWND'].plot()
 	plt.plot(signal, color = 'red')
-	plt.title('Daily Expected Wind Level: PHL')
+	title_name = 'Daily Expected Wind Level: ' + df['city_name'][0]
+	plt.title(title_name)
 	plt.ylabel('Day of Years')
 	plt.xlabel('Winds Speed')
 
@@ -179,3 +209,7 @@ def gen_plots(panel, res):
 
 if __name__ == '__main__':
 	panel, res = train_demand_model()
+	cities = ['Denver', 'Miami', 'New York', 'Seattle', 'Houston']
+	for city in cities:
+		train_weather_model(city)
+	train_sun_model('Miami')
