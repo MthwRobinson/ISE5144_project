@@ -194,3 +194,18 @@ def gen_demand_sim_plots():
 	plt.legend()
 	plt.title('Colorado')
 
+def convert_wind(wind_speed, diameter):
+	"""
+	Returns the energy produced by a wind turbine
+	in one day (in kWh)
+	A typcial value for diameter is 1.2m
+	"""
+	return (0.01328*diameter**2*wind_speed**3)/365
+
+
+
+
+
+
+
+
