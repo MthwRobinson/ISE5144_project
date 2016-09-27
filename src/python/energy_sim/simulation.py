@@ -37,6 +37,9 @@ def initialize_demand_sim(state):
 
 def simulate_demand(mean_dict, var_dict, start_month = 4, 
 	n = 12,	level = 'state', interval = 'monthly', pop = None):
+	"""
+	energy demand simulation returns energy in kWh
+	"""
 	if level not in ['state','city']:
 		err_string = """
 			The level must be either state or city
@@ -74,10 +77,10 @@ def simulate_demand(mean_dict, var_dict, start_month = 4,
 		elif interval == 'daily':
 			month_demand  = np.random.normal(mu,sigma,30)
 			for dem in month_demand:
-				demand.appen(dem/30)
+				demand.append(dem/30)
 				months.append(month)
 	if level == 'city':
-		demand = [pop*x for x in demand]
+		demand = [(pop*x*1000) for x in demand]
 	return demand
 
 def simulate_wind_level(city, n = 360):
@@ -122,6 +125,34 @@ def simulate_sun_level(city, n = 360):
 		sunshine.append(np.random.triangular(a,b,c))
 	return sunshine
 
+def convert_wind(wind_speed, rho, radius, Cp, n):
+	"""
+	P = Power out put in kilowatts
+	E = kWh over a 24 hour period
+	Cp = Max power coefficient. Normal range [0.25,0.45]
+		max theoretical is 0.59 (see Betz' Law)
+	rho = air density in lb/ft3
+	A = rotor swept area (pi*r**2 where r is rotor radius)
+		(measured in feet)
+	v = wind speed in mph
+	k =  0.000133 ... converts power from kilowatts
+		from horsepower
+	"""
+	k = .7457
+	A = np.pi*radius**2
+	P = (.5)*k*Cp*rho*A*wind_speed**3
+	E = n*P*24
+	return E
+
+def convert_solar(n, rating, loss, hours):
+	"""
+	n = number of 25m^2 panels
+	rating = power rating
+	loss = efficiency of the solar panel (if it is 16%
+		then 86% of energy is retained)
+	hours = hours of sunlight for the day
+	"""
+	return n*rating*(1-loss)*hours
 
 def gen_wind_sim_plots(city):
 	plt.clf()
@@ -194,13 +225,7 @@ def gen_demand_sim_plots():
 	plt.legend()
 	plt.title('Colorado')
 
-def convert_wind(wind_speed, diameter):
-	"""
-	Returns the energy produced by a wind turbine
-	in one day (in kWh)
-	A typcial value for diameter is 1.2m
-	"""
-	return (0.01328*diameter**2*wind_speed**3)/365
+
 
 
 
