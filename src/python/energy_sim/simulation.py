@@ -36,7 +36,8 @@ def initialize_demand_sim(state):
 	return state_df, mean_dict, var_dict
 
 def simulate_demand(mean_dict, var_dict, start_month = 4, 
-	n = 12,	level = 'state', interval = 'monthly', pop = None):
+	n = 12,	level = 'state', interval = 'monthly', pop = None,
+	drift = 0, varc = 1):
 	"""
 	energy demand simulation returns energy in kWh
 	"""
@@ -68,8 +69,8 @@ def simulate_demand(mean_dict, var_dict, start_month = 4,
 		month = i%12
 		if month == 0:
 			month = 12
-		mu = mean_dict[month]
-		sigma = var_dict[month]
+		mu = mean_dict[month]*(1+drift*(i/n))
+		sigma = var_dict[month]*varc
 		if interval == 'monthly':
 			month_demand = np.random.normal(mu,sigma)
 			demand.append(month_demand)
@@ -80,10 +81,10 @@ def simulate_demand(mean_dict, var_dict, start_month = 4,
 				demand.append(dem/30)
 				months.append(month)
 	if level == 'city':
-		demand = [(pop*x*1000) for x in demand]
+		demand = [(pop*x) for x in demand]
 	return demand
 
-def simulate_wind_level(city, n = 360):
+def simulate_wind_level(city, n = 360, varc = 1):
 	city_name = city.lower().replace(' ','')
 	modeldir = '/home/matt/ISE5144_project/src'
 	modeldir += '/python/energy_sim/models/'
@@ -96,14 +97,14 @@ def simulate_wind_level(city, n = 360):
 	winds = []
 	for i in range(n):
 		mu = mean_list[i%360]
-		sigma = std_list[month%12]
+		sigma = std_list[month%12]*varc
 		if city_name in ['newyork']:
 			winds.append(max(1,np.random.normal(mu,sqrt(sigma))))
 		else:
 			winds.append(max(1,np.random.normal(mu,sigma)))
 	return winds
 
-def simulate_sun_level(city, n = 360):
+def simulate_solar_panels(city, n = 360):
 	city_name = city.lower().replace(' ','')
 	modeldir = '/home/matt/ISE5144_project/src'
 	modeldir += '/python/energy_sim/models/'
@@ -116,43 +117,36 @@ def simulate_sun_level(city, n = 360):
 	min_list = pickle.load(
 		open(modeldir+'sun_min_' + city_name + '.p', 'rb'))
 	min_list = [min_list[x] for x in min_list]
+	panels = pickle.load(
+		open(modeldir+'solar_panels.p', 'rb'))
+	city_panels = panels[city_name]
 	month = 0
 	sunshine = []
 	for i in range(n):
 		a = min_list[i%12]
 		b = med_list[i%12]
 		c = max_list[i%12]
-		sunshine.append(np.random.triangular(a,b,c))
+		sun = np.random.triangular(a,b,c)
+		pct_diff = 1+((sun-b)/b)
+		month_avg = city_panels[str(i%12)]
+		sunshine.append(max(0,month_avg*pct_diff))
 	return sunshine
 
-def convert_wind(wind_speed, rho, radius, Cp, n):
+def convert_wind(C, wind_speed):
 	"""
-	P = Power out put in kilowatts
-	E = kWh over a 24 hour period
-	Cp = Max power coefficient. Normal range [0.25,0.45]
-		max theoretical is 0.59 (see Betz' Law)
-	rho = air density in lb/ft3
-	A = rotor swept area (pi*r**2 where r is rotor radius)
-		(measured in feet)
-	v = wind speed in mph
-	k =  0.000133 ... converts power from kilowatts
-		from horsepower
+	C = Rated capacity in Kw
+	wind_speed = wind speed for the day
 	"""
-	k = .7457
-	A = np.pi*radius**2
-	P = (.5)*k*Cp*rho*A*wind_speed**3
-	E = n*P*24
+	pct_prod = (wind_speed)**3/(30)**3
+	E = pct_prod*C*24
 	return E
 
-def convert_solar(n, rating, loss, hours):
+def convert_solar(A, S):
 	"""
-	n = number of 25m^2 panels
-	rating = power rating
-	loss = efficiency of the solar panel (if it is 16%
-		then 86% of energy is retained)
-	hours = hours of sunlight for the day
+	A = area 
+	S = amount produced for a day per sq meter
 	"""
-	return n*rating*(1-loss)*hours
+	return A*S
 
 def gen_wind_sim_plots(city):
 	plt.clf()
@@ -168,16 +162,16 @@ def gen_wind_sim_plots(city):
 	title_name = 'Observed Wind Values, ' + city
 	plt.title(title_name)
 	plt.xlabel('Day of Year')
-	plt.ylabel('Max Wind Speed')
+	plt.ylabel('Average Wind Speed (mph)')
 	plt.subplot(2,1,2)
-	winds = simulate_wind_level(city)
+	winds = simulate_wind_level(city, varc = 1)
 	plt.plot(winds)
 	plt.ylim([0,25])
 	plt.xlim([0,360])
-	title_name = 'Observed Wind Values, ' + city
+	title_name = 'Simulated Wind Values, ' + city
 	plt.title(title_name)
 	plt.xlabel('Day of Year')
-	plt.ylabel('Max Wind Speed')
+	plt.ylabel('Average Wind Speed (mph)')
 
 def gen_demand_sim_plots():
 	plt.clf()
@@ -193,15 +187,17 @@ def gen_demand_sim_plots():
 	plt.title('New York')
 
 	plt.subplot(2,2,2)
-	df, mean_dict, var_dict = initialize_demand_sim('CA')
-	demand = simulate_demand(mean_dict, var_dict, n = 109)
-	df['sim'] = demand
-	df['total_energy'].plot()
-	df['sim'].plot()
+	df, mean_dict, var_dict = initialize_demand_sim('FL')
+	demand = simulate_demand(mean_dict, var_dict, n = 109,
+		drift = .3, varc = .55)
+	df['Simulation'] = demand
+	df['Observed'] = df['total_energy']
+	df['Observed'].plot()
+	df['Simulation'].plot()
 	plt.xlabel('Date')
 	plt.ylabel('Energy Demand')
-	plt.legend()
-	plt.title('California')
+	plt.legend(loc = 2)
+	plt.title('Florida')
 
 	plt.subplot(2,2,3)
 	df, mean_dict, var_dict = initialize_demand_sim('TX')
@@ -210,7 +206,7 @@ def gen_demand_sim_plots():
 	df['total_energy'].plot()
 	df['sim'].plot()
 	plt.xlabel('Date')
-	plt.ylabel('Energy Demand')
+	plt.ylabel('Energy Demand (kWh)')
 	plt.legend()
 	plt.title('Texas')
 

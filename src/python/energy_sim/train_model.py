@@ -84,7 +84,7 @@ def train_weather_model(city):
 	df_avgwind.index = range(len(df_avgwind))
 	x = np.array(range(15,360,30))
 	y = df_avgwind['AWND']
-	spl = UnivariateSpline(x,y,k=5)
+	spl = UnivariateSpline(x,y,k=3)
 	mean_list = spl(range(360))
 	std_list = df_stdwind['AWND']
 	modeldir = '/home/matt/ISE5144_project/src'
@@ -133,7 +133,7 @@ def gen_weather_plots(df):
 	df_avgwind = df_wind.groupby('month').mean()
 	x = np.array(range(15,360,30))
 	y = df_avgwind['AWND']
-	spl = UnivariateSpline(x,y,k=5)
+	spl = UnivariateSpline(x,y,k=3)
 	signal = spl(range(360))
 	df_daily = df_wind.groupby(['month','day']).mean()
 	df_daily.index = range(len(df_daily))
@@ -141,8 +141,8 @@ def gen_weather_plots(df):
 	plt.plot(signal, color = 'red')
 	title_name = 'Daily Expected Wind Level: ' + df['city_name'][0]
 	plt.title(title_name)
-	plt.ylabel('Day of Years')
-	plt.xlabel('Winds Speed')
+	plt.ylabel('Wind Speed (mph)')
+	plt.xlabel('Day of the Year')
 
 
 def gen_plots(panel, res):
@@ -178,7 +178,7 @@ def gen_plots(panel, res):
 	plt.title('California')
 
 	plt.subplot(2,2,3)
-	xnew = panel[panel['state'] == 'TX']
+	xnew = panel[panel['state'] == 'FL']
 	pred = res.predict(xnew)
 	pred = pd.DataFrame(pred)
 	pred.columns = ['Predicted']
@@ -190,7 +190,7 @@ def gen_plots(panel, res):
 	plt.xlabel('Date')
 	plt.ylabel('Energy Demand')
 	plt.legend()
-	plt.title('Texas')
+	plt.title('Florida')
 
 	plt.subplot(2,2,4)
 	xnew = panel[panel['state'] == 'CO']

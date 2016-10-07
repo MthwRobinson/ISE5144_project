@@ -1,24 +1,40 @@
+from __future__ import division
 from simulation import (
 	initialize_demand_sim,
 	simulate_demand,
 	simulate_wind_level,
-	simulate_sun_level,
+	simulate_solar_panels,
 	convert_wind,
 	convert_solar
 )
+import pandas as pd
+import matplotlib.pyplot as plt
 
-def simulate_florida(runs = 1):
+def simulate_florida(wind_mills, panel_area, pop, runs = 1):
 	e_df, e_mean, e_var = initialize_demand_sim('FL')
 	demand = simulate_demand(mean_dict = e_mean,
 		var_dict = e_var, start_month = 1, level = 'city',
-		interval = 'daily', pop = 0.0016)
+		interval = 'daily', pop = pop/18000000)
 	wind = simulate_wind_level('Miami', n = 360)
-	wind_energy = [convert_wind(wind_speed = x,
-		rho = 0.076474252, radius = 10, Cp = 0.35, n = 20)
+	wind_energy = [wind_mills*convert_wind(wind_speed = x, C = 1500)
 		for x in wind]
-	sunshine = simulate_sun_level(city = 'Miami', n = 360)
-	solar_energy = [x*convert_solar(n = 1618, rating = 4,
-		loss = 0.16, hours = 8) for x in sunshine]
-	plt.plot(demand)
-	plt.plot(wind_energy)
-	plt.plot(solar_energy)
+	sunshine = simulate_solar_panels(city = 'Miami', n = 360)
+	solar_energy = [convert_solar(A = panel_area, S = x) 
+		for x in sunshine]
+	dem_met = 0
+	outside = 0
+	for i, dem in enumerate(demand):
+		prod = solar_energy[i] + wind_energy[i]
+		if dem >= prod:
+			outside += (dem-prod)
+		else:
+			dem_met += 1
+	print 'Pct of days demand was met: ', dem_met/360
+	print 'Energy Purchased from Grid: ', outside
+
+	return {'demand': demand, 'wind' : wind_energy, 'solar' : solar_energy}
+
+
+# plt.plot(dict['demand'])
+# plt.plot(dict['wind'])
+# plt.plot(dict['solar'])
