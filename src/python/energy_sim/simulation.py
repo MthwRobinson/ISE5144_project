@@ -137,7 +137,7 @@ def convert_wind(C, wind_speed):
 	C = Rated capacity in Kw
 	wind_speed = wind speed for the day
 	"""
-	pct_prod = (wind_speed)**3/(30)**3
+	pct_prod = min((wind_speed)**3/(30)**3,1)
 	E = pct_prod*C*24
 	return E
 
