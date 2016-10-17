@@ -12,24 +12,56 @@ import matplotlib.pyplot as plt
 import numpy as np
 import applpy
 import random
+import pickle
 
 def simulate_florida(wind_mills, panel_area, storage, price,
-		pop, runs = 1, verbose = False):
+		pop, runs = 1, verbose = False, model_dict = None):
 	total_demand = []
 	mean_prod = []
 	demand_met = []
 	reward_risk = []
 	energy_sold = []
 	energy_purchased = []
-	for i in range(runs):
+	if model_dict == None:
+		modeldir = '/home/matt/ISE5144_project/src'
+		modeldir += '/python/energy_sim/models/'
+		max_list = pickle.load(
+			open(modeldir+'sun_max_miami.p', 'rb'))
+		max_list = [max_list[x] for x in max_list]
+		med_list = pickle.load(
+			open(modeldir+'sun_med_miami.p', 'rb'))
+		med_list = [med_list[x] for x in med_list]
+		min_list = pickle.load(
+			open(modeldir+'sun_min_miami.p', 'rb'))
+		min_list = [min_list[x] for x in min_list]
+		panels = pickle.load(
+			open(modeldir+'solar_panels.p', 'rb'))
+		mean_list = pickle.load(
+			open(modeldir+'wind_mean_miami.p', 'rb'))
+		std_list = pickle.load(
+			open(modeldir+'wind_std_miami.p', 'rb'))
 		e_df, e_mean, e_var = initialize_demand_sim('FL')
+	else:
+		max_list = model_dict['max_list']
+		med_list = model_dict['med_list']
+		min_list = model_dict['min_list']
+		panels = model_dict['panels']
+		mean_list = model_dict['mean_list']
+		std_list = model_dict['std_list']
+		e_df = model_dict['e_df']
+		e_mean = model_dict['e_mean']
+		e_var = model_dict['e_var']
+	for i in range(runs):
 		demand = simulate_demand(mean_dict = e_mean,
 			var_dict = e_var, start_month = 1, level = 'city',
 			interval = 'daily', pop = pop/18000000)
-		wind = simulate_wind_level('Miami', n = 360)
+		wind = simulate_wind_level('Miami', n = 360,
+			mean_list = mean_list, std_list = std_list)
 		wind_energy = [wind_mills*convert_wind(wind_speed = x, C = 1500)
 			for x in wind]
-		sunshine = simulate_solar_panels(city = 'Miami', n = 360)
+		sunshine = simulate_solar_panels(city = 'Miami', n = 360,
+			max_list = max_list, med_list = med_list,
+			min_list = min_list)
 		solar_energy = [convert_solar(A = panel_area, S = x) 
 			for x in sunshine]
 		dem_met = 0
@@ -115,6 +147,35 @@ def simulate_florida(wind_mills, panel_area, storage, price,
 # plt.plot(dict['solar'])
 
 if __name__ == '__main__':
+	modeldir = '/home/matt/ISE5144_project/src'
+	modeldir += '/python/energy_sim/models/'
+	max_list = pickle.load(
+		open(modeldir+'sun_max_miami.p', 'rb'))
+	max_list = [max_list[x] for x in max_list]
+	med_list = pickle.load(
+		open(modeldir+'sun_med_miami.p', 'rb'))
+	med_list = [med_list[x] for x in med_list]
+	min_list = pickle.load(
+		open(modeldir+'sun_min_miami.p', 'rb'))
+	min_list = [min_list[x] for x in min_list]
+	panels = pickle.load(
+		open(modeldir+'solar_panels.p', 'rb'))
+	mean_list = pickle.load(
+		open(modeldir+'wind_mean_miami.p', 'rb'))
+	std_list = pickle.load(
+		open(modeldir+'wind_std_miami.p', 'rb'))
+	e_df, e_mean, e_var = initialize_demand_sim('FL')
+	model_dict = {
+		'max_list' : max_list,
+		'med_list' : med_list,
+		'min_list' : min_list,
+		'panels' : panels,
+		'mean_list' : mean_list,
+		'std_list' : std_list,
+		'e_df' : e_df,
+		'e_mean' : e_mean,
+		'e_var' : e_var
+	}
 	data = {
 		'population' : [],
 		'wind_mills' : [],
@@ -155,8 +216,9 @@ if __name__ == '__main__':
 					storage = sto,
 					price = .12,
 					pop = 50000,
-					runs = 10,
-					verbose = False
+					runs = 1000,
+					verbose = False,
+					model_dict = model_dict
 				)
 				df_t = pd.DataFrame(data)
 				df = pd.concat([df,df_t])
@@ -164,3 +226,4 @@ if __name__ == '__main__':
 	df.dropna()
 	output_dir = '/home/matt/ISE5144_project/output/'
 	df.to_csv(output_dir + 'sim_out.csv')
+	print 'done ... yay!'

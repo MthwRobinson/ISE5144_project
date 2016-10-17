@@ -84,7 +84,8 @@ def simulate_demand(mean_dict, var_dict, start_month = 4,
 		demand = [(pop*x) for x in demand]
 	return demand
 
-def simulate_wind_level(city, n = 360, varc = 1):
+def simulate_wind_level(city, n = 360, varc = 1, mean_list = None,
+		std_list = None):
 	city_name = city.lower().replace(' ','')
 	modeldir = '/home/matt/ISE5144_project/src'
 	modeldir += '/python/energy_sim/models/'
@@ -104,21 +105,26 @@ def simulate_wind_level(city, n = 360, varc = 1):
 			winds.append(max(1,np.random.normal(mu,sigma)))
 	return winds
 
-def simulate_solar_panels(city, n = 360):
+def simulate_solar_panels(city, n = 360, max_list = None,
+		med_list = None, min_list = None, panels = None):
 	city_name = city.lower().replace(' ','')
 	modeldir = '/home/matt/ISE5144_project/src'
 	modeldir += '/python/energy_sim/models/'
-	max_list = pickle.load(
-		open(modeldir+'sun_max_' + city_name + '.p', 'rb'))
-	max_list = [max_list[x] for x in max_list]
-	med_list = pickle.load(
-		open(modeldir+'sun_med_' + city_name + '.p', 'rb'))
-	med_list = [med_list[x] for x in med_list]
-	min_list = pickle.load(
-		open(modeldir+'sun_min_' + city_name + '.p', 'rb'))
-	min_list = [min_list[x] for x in min_list]
-	panels = pickle.load(
-		open(modeldir+'solar_panels.p', 'rb'))
+	if max_list == None:
+		max_list = pickle.load(
+			open(modeldir+'sun_max_' + city_name + '.p', 'rb'))
+		max_list = [max_list[x] for x in max_list]
+	if med_list == None:
+		med_list = pickle.load(
+			open(modeldir+'sun_med_' + city_name + '.p', 'rb'))
+		med_list = [med_list[x] for x in med_list]
+	if min_list == None:
+		min_list = pickle.load(
+			open(modeldir+'sun_min_' + city_name + '.p', 'rb'))
+		min_list = [min_list[x] for x in min_list]
+	if panels == None:
+		panels = pickle.load(
+			open(modeldir+'solar_panels.p', 'rb'))
 	city_panels = panels[city_name]
 	month = 0
 	sunshine = []
