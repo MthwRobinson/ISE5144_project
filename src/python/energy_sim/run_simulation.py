@@ -131,6 +131,7 @@ def simulate_florida(wind_mills, panel_area, storage,
 		'reward_risk' : [risk],
 		'energy_sold' : [sold],
 		'energy_purchased' : [pur],
+		'demand' : [dem]
 	}
 	return data
 
@@ -170,17 +171,18 @@ if __name__ == '__main__':
 		'e_var' : e_var
 	}
 	data = {
-		'avg_pct_dem_met' : [],
+		'pct_dem_met' : [],
 		'population' : [],
 		'wind_mills' : [],
 		'panel_area' : [],
 		'storage' : [],
 		'area' : [],
 		'total_prod' : [],
-		'pct_days_demand_met' : [],
+		'demand_met' : [],
 		'reward_risk' : [],
 		'energy_sold' : [],
-		'energy_purchased' : []
+		'energy_purchased' : [],
+		'demand' : []
 	}
 	df = pd.DataFrame(data)
 	mills = range(0,25)
@@ -197,7 +199,7 @@ if __name__ == '__main__':
 					panel_area = slr,
 					storage = sto,
 					pop = 50000,
-					runs = 1000,
+					runs = 1,
 					verbose = False,
 					model_dict = model_dict
 				)
