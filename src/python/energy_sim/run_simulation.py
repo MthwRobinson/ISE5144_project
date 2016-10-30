@@ -14,7 +14,7 @@ import applpy
 import random
 import pickle
 
-def simulate_florida(wind_mills, panel_area, storage, price,
+def simulate_florida(wind_mills, panel_area, storage,
 		pop, runs = 1, verbose = False, model_dict = None):
 	total_demand = []
 	mean_prod = []
@@ -68,6 +68,7 @@ def simulate_florida(wind_mills, panel_area, storage, price,
 		outside = 0
 		sold = 0
 		stored = 0
+		pct_dem_met = []
 		total_prod = []
 		for i, dem in enumerate(demand):
 			prod = solar_energy[i] + wind_energy[i]
@@ -79,14 +80,17 @@ def simulate_florida(wind_mills, panel_area, storage, price,
 				dem_met += 1
 				sold += max(available - dem - storage, 0)
 				stored = min(available - dem, storage)
+			pct_met = min(1, prod/dem)
+			pct_dem_met.append(pct_met)
 		prod_array = np.array(total_prod)
 		avg_prod = prod_array.mean()
 		inv_cov = prod_array.mean()/prod_array.std()
 		mean_prod.append(avg_prod)
 		demand_met.append(dem_met/360)
 		reward_risk.append(inv_cov)
-		energy_sold.append(price*sold)
-		energy_purchased.append(price*outside)
+		energy_sold.append(sold)
+		energy_purchased.append(outside)
+	pct_met = np.mean(pct_dem_met)
 	prod = np.mean(mean_prod)
 	prod_025 = np.percentile(mean_prod, 2.5)
 	prod_975 = np.percentile(mean_prod, 97.5)
@@ -116,28 +120,17 @@ def simulate_florida(wind_mills, panel_area, storage, price,
 		print 'Installation Cost: ', cost
 
 	data = {
+		'pct_dem_met' : [pct_met],
 		'population' : [pop],
 		'wind_mills' : [wind_mills],
 		'panel_area' : [panel_area],
 		'storage' : [storage],
-		'price' : [price],
 		'area' : [area],
-		'cost' : [cost],
 		'total_prod' : [prod],
 		'demand_met' : [dem],
 		'reward_risk' : [risk],
 		'energy_sold' : [sold],
 		'energy_purchased' : [pur],
-		'total_prod_025' : [prod_025],
-		'demand_met_025' : [dem_025],
-		'reward_risk_025' : [risk_025],
-		'energy_sold_025' : [sold_025],
-		'energy_purchased_025' : [pur_025],
-		'total_prod_975' : [prod_975],
-		'demand_met_975' : [dem_975],
-		'reward_risk_975' : [risk_975],
-		'energy_sold_975' : [sold_975],
-		'energy_purchased_975' : [pur_975]
 	}
 	return data
 
@@ -177,34 +170,23 @@ if __name__ == '__main__':
 		'e_var' : e_var
 	}
 	data = {
+		'avg_pct_dem_met' : [],
 		'population' : [],
 		'wind_mills' : [],
 		'panel_area' : [],
 		'storage' : [],
-		'price' : [],
 		'area' : [],
-		'cost' : [],
 		'total_prod' : [],
-		'demand_met' : [],
+		'pct_days_demand_met' : [],
 		'reward_risk' : [],
 		'energy_sold' : [],
-		'energy_purchased' : [],
-		'total_prod_025' : [],
-		'demand_met_025' : [],
-		'reward_risk_025' : [],
-		'energy_sold_025' : [],
-		'energy_purchased_025' : [],
-		'total_prod_975' : [],
-		'demand_met_975' : [],
-		'reward_risk_975' : [],
-		'energy_sold_975' : [],
-		'energy_purchased_975' : []
+		'energy_purchased' : []
 	}
 	df = pd.DataFrame(data)
-	mills = range(0,20)
-	solar = range(0,20)
+	mills = range(0,25)
+	solar = range(0,25)
 	solar = [100*x for x in solar]
-	store = range(20)
+	store = range(25)
 	store = [100*x for x in store]
 	for wm in mills:
 		for slr in solar:
@@ -214,7 +196,6 @@ if __name__ == '__main__':
 					wind_mills = wm,
 					panel_area = slr,
 					storage = sto,
-					price = .12,
 					pop = 50000,
 					runs = 1000,
 					verbose = False,
@@ -225,5 +206,5 @@ if __name__ == '__main__':
 				print wm, slr, sto, 'done'
 	df.dropna()
 	output_dir = '/home/matt/ISE5144_project/output/'
-	df.to_csv(output_dir + 'sim_out.csv')
+	df.to_csv(output_dir + 'sim_out_2.csv')
 	print 'done ... yay!'
