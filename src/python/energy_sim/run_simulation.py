@@ -199,7 +199,7 @@ if __name__ == '__main__':
 					panel_area = slr,
 					storage = sto,
 					pop = 50000,
-					runs = 1,
+					runs = 1000,
 					verbose = False,
 					model_dict = model_dict
 				)
