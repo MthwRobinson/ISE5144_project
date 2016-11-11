@@ -1,0 +1,22 @@
+Summary of efficiencies
+The technology is crs and input orientated efficiency
+Number of firms with efficiency==1 are 138 
+Mean efficiency: 0.937 
+---                
+  Eff range         #     %
+  0.7<= E <0.8      3  0.11
+  0.8<= E <0.9    659 23.29
+  0.9<= E <1     2030 71.73
+        E ==1     138  4.88
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.7924  0.9033  0.9453  0.9370  0.9774  1.0000 
+Efficiency and slacks:
+Number of firms with efficiency==1 and positive slacks: 25 
+Number of firms with:
+  only x slacks:  8 
+  only y slacks:  2625 
+  x and y slacks: 2 
+""
+  x slacks:  10 
+  y slacks:  2627 
+all slacks:  2635 
