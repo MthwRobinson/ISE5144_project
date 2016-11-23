@@ -108,8 +108,9 @@ def simulate_florida(wind_mills, panel_area, storage,
 	pur_975 = np.percentile(energy_purchased, 97.5)
 	cost = (150*panel_area + 1000000 * wind_mills 
 			+ 1100*storage)
-	wm_dim = np.floor(np.sqrt(wind_mills))+1
+	wm_dim = np.floor(np.sqrt(wind_mills))
 	area = (panel_area + ((wm_dim*10)*(wm_dim*100)))
+	print area, wm_dim, panel_area
 	if verbose == True:
 		print 'Mean Energy Production: ', prod
 		print 'Pct of days demand was met: ', dem
